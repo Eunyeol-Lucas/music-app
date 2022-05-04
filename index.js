@@ -1,23 +1,22 @@
-import { $ } from "./utils/dom.js";
+import { $, throttle } from "./utils/util.js";
 import { API_KEY, URL } from "./utils/consts.js";
 
 const searchInput = $(".search-box__input");
 const searchButton = $(".search-box__button");
 const searchResult = $(".search-result");
 
-const api = {
+const requestInfo = {
   page: 1,
+  prevKeyword: "",
 };
-let prevKeyword = "";
-let albumCount = 0;
 
 const ioCallback = (entries, io) => {
   entries.forEach((entry) => {
     if (entry.isIntersecting) {
       io.unobserve(entry.target);
       delete entry.target.dataset.id;
-      api.page += 1;
-      fetchAlbums(api.page);
+      requestInfo.page += 1;
+      fetchAlbums(requestInfo.page);
     }
   });
 };
@@ -34,11 +33,10 @@ const fetchAlbums = async (page = 1) => {
   if (!keyword) return;
   loadingList.style.display = "block";
 
-  if (prevKeyword !== keyword) {
+  if (requestInfo.prevKeyword !== keyword) {
     searchResult.innerHTML = "";
-    prevKeyword = keyword;
-    albumCount = 0;
-    api.page = 1;
+    requestInfo.prevKeyword = keyword;
+    requestInfo.page = 1;
   }
   const requestUrl = URL.BASE_URL + URL.SEARCH_URL;
   const params = {
@@ -64,7 +62,6 @@ const fetchAlbums = async (page = 1) => {
 const renderAlbums = async (albums) => {
   const fragment = document.createDocumentFragment();
   const count = albums.length;
-  albumCount += count;
   albums.forEach((album, idx) =>
     fragment.append(albumTemplate(album, idx, count))
   );
@@ -101,20 +98,6 @@ const albumTemplate = (album, idx, count) => {
   return cardWrapper;
 };
 
-const throttle = (cb, delay) => {
-  let timerId;
-  return (e) => {
-    if (timerId) return;
-    timerId = setTimeout(
-      () => {
-        cb(e);
-        timerId = null;
-      },
-      delay,
-      e
-    );
-  };
-};
 const initEventListeners = () => {
   searchInput.addEventListener("keyup", (e) => {
     if (e.key === "Backspace" && searchInput.value === "")
