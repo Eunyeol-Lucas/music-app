@@ -1,6 +1,10 @@
 import { $ } from "./utils/dom.js";
 import { API_KEY, URL } from "./utils/consts.js";
 
+const searchInput = $(".search-box__input");
+const searchButton = $(".search-box__button");
+const searchResult = $(".search-result");
+
 const api = {
   page: 1,
 };
@@ -11,26 +15,19 @@ const ioCallback = (entries, io) => {
   entries.forEach((entry) => {
     if (entry.isIntersecting) {
       io.unobserve(entry.target);
+      delete entry.target.dataset.id;
       api.page += 1;
       fetchAlbums(api.page);
-      observeLastItem(io, document.querySelectorAll(".search-result__card"));
     }
   });
 };
 
-const observeLastItem = (io, items) => {
-  if (!items) return;
-  const lastItem = items[items.length - 1];
-  if (!lastItem) return;
-  if (albumCount !== items.length) io.observe(lastItem);
-  albumCount = items.length;
+const observeLastItem = (io) => {
+  const target = $(".search-result").querySelector('[data-id="target"]');
+  if (!target) return;
+  io.observe(target);
 };
-
 const io = new IntersectionObserver(ioCallback, { threshold: 1 });
-
-const searchInput = $(".search-box__input");
-const searchButton = $(".search-box__button");
-const searchResult = $(".search-result");
 
 const fetchAlbums = async (page = 1) => {
   let keyword = searchInput.value.trim();
@@ -62,20 +59,20 @@ const fetchAlbums = async (page = 1) => {
     return;
   }
   renderAlbums(albums);
-  if (page === 1) {
-    const items = document.querySelectorAll(".search-result__card");
-    observeLastItem(io, items);
-  }
 };
 
 const renderAlbums = async (albums) => {
   const fragment = document.createDocumentFragment();
-  albums.forEach((album) => fragment.append(albumTemplate(album)));
+  const count = albums.length;
+  albumCount += count;
+  albums.forEach((album, idx) =>
+    fragment.append(albumTemplate(album, idx, count))
+  );
   searchResult.append(fragment);
-  // searchResult.append(observePoint);
+  observeLastItem(io);
 };
 
-const albumTemplate = (album) => {
+const albumTemplate = (album, idx, count) => {
   const cardWrapper = document.createElement("div");
   cardWrapper.classList.add("search-result__card");
   let cardImgSrc = album.image[1]["#text"];
@@ -97,6 +94,9 @@ const albumTemplate = (album) => {
   albumName.textContent = album.name;
   cardTextWrapper.append(artistName, albumName);
   cardWrapper.append(cardImg, cardTextWrapper);
+  if (idx === count - 1) {
+    cardWrapper.dataset.id = "target";
+  }
 
   return cardWrapper;
 };
