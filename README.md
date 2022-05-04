@@ -1,4 +1,9 @@
-# Music-app
+<div align="center">
+	<img src="README.assets/Screenshot-1640517.png" alt="img" width="300"/>
+  <p>
+    	<a href="https://eunyeol-lucas.github.io/music-app/" target="_blank">Music app 체험하기 </a> 👈 클릭
+  </p>
+ </div>
 
 ⏰ **시행 날짜:** 2022.05.03 - 05.04
 
