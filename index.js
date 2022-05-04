@@ -5,35 +5,42 @@ const api = {
   page: 1,
 };
 let prevKeyword = "";
-function createObserver(target) {
-  const options = {
-    threshold: 0,
-  };
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        api.page += 1;
-        fetchAlbums(api.page);
-      }
-    });
-  }, options);
-  observer.observe(target);
-}
+let albumCount = 0;
+
+const ioCallback = (entries, io) => {
+  entries.forEach((entry) => {
+    if (entry.isIntersecting) {
+      io.unobserve(entry.target);
+      api.page += 1;
+      fetchAlbums(api.page);
+      observeLastItem(io, document.querySelectorAll(".search-result__card"));
+    }
+  });
+};
+
+const observeLastItem = (io, items) => {
+  if (!items) return;
+  const lastItem = items[items.length - 1];
+  if (!lastItem) return;
+  if (albumCount !== items.length) io.observe(lastItem);
+  albumCount = items.length;
+};
+
+const io = new IntersectionObserver(ioCallback, { threshold: 1 });
 
 const searchInput = $(".search-box__input");
 const searchButton = $(".search-box__button");
 const searchResult = $(".search-result");
-const observePoint = document.createElement("div");
-createObserver(observePoint);
 
 const fetchAlbums = async (page = 1) => {
-  loadingList.style.display = "block";
   let keyword = searchInput.value.trim();
   if (!keyword) return;
-  console.log(keyword);
+  loadingList.style.display = "block";
+
   if (prevKeyword !== keyword) {
     searchResult.innerHTML = "";
     prevKeyword = keyword;
+    albumCount = 0;
     api.page = 1;
   }
   const requestUrl = URL.BASE_URL + URL.SEARCH_URL;
@@ -51,16 +58,21 @@ const fetchAlbums = async (page = 1) => {
   const albums = response.data.results.albummatches.album;
   if (albums.length === 0) {
     searchResult.innerHTML = `<div> "${keyword}"에 대한 검색 결과가 없습니다.</div>`;
+    loadingList.style.display = "none";
     return;
   }
   renderAlbums(albums);
+  if (page === 1) {
+    const items = document.querySelectorAll(".search-result__card");
+    observeLastItem(io, items);
+  }
 };
 
 const renderAlbums = async (albums) => {
   const fragment = document.createDocumentFragment();
   albums.forEach((album) => fragment.append(albumTemplate(album)));
   searchResult.append(fragment);
-  searchResult.append(observePoint);
+  // searchResult.append(observePoint);
 };
 
 const albumTemplate = (album) => {
@@ -77,12 +89,15 @@ const albumTemplate = (album) => {
   cardImg.alt = `${album.name} album cover`;
   const cardTextWrapper = document.createElement("div");
   cardTextWrapper.classList.add("search-result__text");
+
   const artistName = document.createElement("h2");
   artistName.textContent = album.artist;
+
   const albumName = document.createElement("p");
   albumName.textContent = album.name;
   cardTextWrapper.append(artistName, albumName);
   cardWrapper.append(cardImg, cardTextWrapper);
+
   return cardWrapper;
 };
 
@@ -101,6 +116,11 @@ const throttle = (cb, delay) => {
   };
 };
 const initEventListeners = () => {
+  searchInput.addEventListener("keyup", (e) => {
+    if (e.key === "Backspace" && searchInput.value === "")
+      searchResult.innerHTML = "";
+    loadingList.style.display = "none";
+  });
   searchInput.addEventListener(
     "keyup",
     throttle(() => fetchAlbums(), 500)

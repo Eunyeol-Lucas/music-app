@@ -13,19 +13,16 @@ export default class Controller {
     this.createObserver(this.observePoint);
 
     this.albums = Albums.createAlbums();
-    this.searchedAlbums = SearchedAlbums.createSearchedAlbum();
+    this.searchedAlbums = SearchedAlbums.createSearchedAlbums();
     this.initEventListeners();
   }
   initEventListeners() {
     this.$searchInput.addEventListener(
       "keyup",
-      throttle(
-        () => this.albums.fetchAlbums(this.$searchInput.value, this.api),
-        500
-      )
-    );
-    this.$searchButton.addEventListener("click", () =>
-      this.albums.fetchAlbums(this.$searchInput.value)
+      throttle(() => {
+        this.albums.fetchAlbums(this.$searchInput.value, this.api);
+        this.render();
+      }, 500)
     );
   }
   createObserver(target) {
@@ -35,12 +32,19 @@ export default class Controller {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          api.page += 1;
-          fetchAlbums(api.page, this.createObserver);
+          this.api.page += 1;
+          this.albums.fetchAlbums(this.$searchInput.value, this.api);
+          this.render();
         }
       });
     }, options);
     observer.observe(target);
+  }
+  async render() {
+    await this.searchedAlbums.renderAlbums(
+      this.albums.albumList,
+      this.observePoint
+    );
   }
 }
 
@@ -58,5 +62,3 @@ const throttle = (cb, delay) => {
     );
   };
 };
-
-// throttle(() => albums.fetchAlbums(), 500);

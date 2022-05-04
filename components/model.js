@@ -3,9 +3,10 @@ import { API_KEY, URL } from "../utils/consts.js";
 
 export default class Albums {
   constructor() {
+    this.albumList = [];
     this.$searchResult = $(".search-result");
   }
-  async fetchAlbums(input, api, observer) {
+  async fetchAlbums(input, api) {
     loadingList.style.display = "block";
     let keyword = input.trim();
     if (!keyword) return;
@@ -32,9 +33,13 @@ export default class Albums {
       this.$searchResult.innerHTML = `<div> "${keyword}"에 대한 검색 결과가 없습니다.</div>`;
       return;
     }
-    this.searchedAlbums.renderAlbums(albums, observer);
+    this.setState(albums);
   }
-  createAlbums() {
+
+  setState(state) {
+    this.albumList = state;
+  }
+  static createAlbums() {
     return new Albums();
   }
 }

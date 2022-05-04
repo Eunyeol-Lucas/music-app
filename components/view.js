@@ -6,7 +6,8 @@ export default class SearchedAlbums {
   }
   async renderAlbums(albums, observer) {
     const fragment = document.createDocumentFragment();
-    albums.forEach((album) => fragment.append(this.albumTemplate(album)));
+    if (albums === []) return;
+    albums?.forEach((album) => fragment.append(this.albumTemplate(album)));
     this.$searchResult.append(fragment);
     this.$searchResult.append(observer);
   }
@@ -33,7 +34,8 @@ export default class SearchedAlbums {
     cardWrapper.append(cardImg, cardTextWrapper);
     return cardWrapper;
   }
-  createSearchedAlbums() {
+
+  static createSearchedAlbums() {
     return new SearchedAlbums();
   }
 }
